@@ -25,23 +25,100 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.insertBefore(heroSection, document.body.firstChild);
     document.body.insertBefore(header, heroSection.nextSibling);
 
-    // Smooth scroll for anchor links with offset
+    // Enhanced smooth scroll with offset
+    const scrollToSection = (target) => {
+        const headerOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scroll-offset')) || 80;
+        const elementPosition = target.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+        });
+    };
+
+    // Handle all anchor clicks
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
-                const headerOffset = 100;
-                const elementPosition = target.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
+                scrollToSection(target);
+                
+                // Update active state in navigation
+                document.querySelectorAll('.floating-nav a').forEach(link => {
+                    link.classList.remove('active');
                 });
+                this.classList.add('active');
             }
         });
     });
+
+    // Update active section on scroll
+    const allSections = document.querySelectorAll('section, h3[id]');
+    const navLinks = document.querySelectorAll('.floating-nav a');
+
+    const updateActiveSection = () => {
+        const scrollPosition = window.scrollY + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--scroll-offset')) + 10;
+
+        allSections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.offsetHeight;
+            const sectionId = section.getAttribute('id');
+
+            if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${sectionId}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    };
+
+    window.addEventListener('scroll', updateActiveSection);
+    updateActiveSection(); // Initial check
+
+    // Toggle navigation visibility
+    const nav = document.querySelector('.floating-nav');
+    let isNavVisible = false;
+
+    nav.addEventListener('mouseenter', () => {
+        isNavVisible = true;
+        nav.style.transform = 'translateX(0)';
+    });
+
+    nav.addEventListener('mouseleave', () => {
+        isNavVisible = false;
+        nav.style.transform = 'translateX(calc(var(--nav-width) + 20px))';
+    });
+
+    // Handle mobile touch events
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    nav.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    nav.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    const handleSwipe = () => {
+        const swipeThreshold = 50;
+        if (touchEndX < touchStartX - swipeThreshold) {
+            // Swipe left
+            nav.style.transform = 'translateX(calc(var(--nav-width) + 20px))';
+            isNavVisible = false;
+        } else if (touchEndX > touchStartX + swipeThreshold) {
+            // Swipe right
+            nav.style.transform = 'translateX(0)';
+            isNavVisible = true;
+        }
+    };
 
     // Parallax effect for hero section
     window.addEventListener('scroll', () => {
